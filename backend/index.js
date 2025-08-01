@@ -1,12 +1,14 @@
-import express from 'express'
-import dotenv from 'dotenv'
-dotenv.config()
-let port = process.env.PORT ||6000
+import express from 'express';
+import dotenv from 'dotenv';
+import connectDb from './config/db.js';
 
+dotenv.config();
 
-let app = express()
+const port = process.env.PORT || 6000;
 
+const app = express();
 
-app.listen(prot,()=>{
-       console.log("Hello from server");
+app.listen(port, () => {
+  console.log("Hello from server");
+  connectDb();
 });

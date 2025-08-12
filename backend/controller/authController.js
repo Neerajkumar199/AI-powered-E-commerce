@@ -2,7 +2,9 @@ import User from "../model/userModel.js";
 import { genToken } from "../middleware/token.js";
 import validator from "validator";
 import bcrypt from "bcryptjs";
-
+// import User from "../models/userModel.js";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 // ✅ Registration
 export const registration = async (req, res) => {
   try {
@@ -126,5 +128,59 @@ export const logOut = async (req, res) => {
   } catch (error) {
     console.log("logout error", error.message);
     return res.status(500).json({ message: `Logout error: ${error.message}` });
+  }
+};
+ 
+// Google with login 
+
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and email are required" });
+    }
+
+    // find existing user
+    let user = await User.findOne({ email });
+
+    // create if not exists (give a random password if schema requires one)
+    if (!user) {
+      const randomPassword = crypto.randomBytes(16).toString("hex");
+      user = await User.create({
+        name,
+        email,
+        password: randomPassword,
+        authProvider: "google" // optional
+      });
+    }
+
+    // ensure JWT secret exists
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error("Missing JWT_SECRET in env");
+      return res.status(500).json({ message: "Server misconfiguration: missing JWT_SECRET" });
+    }
+
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    return res.status(200).json({
+      message: "Google login successful",
+      user: { id: user._id, name: user.name, email: user.email },
+    });
+  } catch (err) {
+    // log full stack for debugging
+    console.error("googleLogin error:", err.stack || err);
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -5,6 +5,8 @@ import google from '../assets/google.png';
 import { IoEyeOutline, IoEye } from "react-icons/io5";
 import { authDataContext } from '../context/authContext';
 import axios from 'axios';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../../utils/Firebase'; // ✅ auth imported
 
 function Login() {
   const [show, setShow] = useState(false);
@@ -30,6 +32,24 @@ function Login() {
       alert(error?.response?.data?.message || "Login failed. Please try again.");
     }
   };
+  const googleLogin = async () => {
+  try {
+    const response = await signInWithPopup(auth, provider);
+    let user = response.user;
+    let name = user.displayName;
+    let email = user.email;
+
+    const result = await axios.post(
+      serverUrl + "/api/auth/googlelogin",
+      { name, email }, // request body
+      { withCredentials: true } // axios config
+    );
+
+    console.log("✅ Google login complete:", result.data);
+  } catch (error) {
+    console.error("❌ Google login error:", error);
+  }
+};
 
   return (
     <div className='w-[100vw] h-[100vh] bg-gradient-to-b from-[#141414] to-[#0c2025] text-white flex flex-col items-center justify-start'>
@@ -51,9 +71,9 @@ function Login() {
         <form onSubmit={handleLogin} className='w-[70%] h-full flex flex-col items-center justify-start gap-5'>
 
           {/* Google Button */}
-          <div className='w-full h-[50px] bg-[#42656cae] rounded-lg flex items-center justify-center gap-3 px-4 cursor-pointer'>
+          <div className='w-full h-[50px] bg-[#42656cae] rounded-lg flex items-center justify-center gap-3 px-4 cursor-pointer' onClick={googleLogin}>
             <img src={google} alt="Google" className='w-[25px]' />
-            <span>Login with Google</span>
+            <span>Login account with Google</span>
           </div>
 
           {/* Divider */}
@@ -120,5 +140,4 @@ function Login() {
     </div>
   );
 }
-
 export default Login;
